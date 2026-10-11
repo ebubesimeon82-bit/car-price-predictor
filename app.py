@@ -10,45 +10,35 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ---------------- Styling ----------------
+# ---------------- Styling (light theme) ----------------
 st.markdown("""
     <style>
-    .stApp { background-color: #0e1117; color: #e6e6e6; }
-    section[data-testid="stSidebar"] {
-        background-color: #161a23;
-        border-right: 1px solid #262b36;
-    }
     .hero {
         padding: 28px 32px;
         border-radius: 16px;
-        background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-        border: 1px solid #2d3748;
+        background-color: #eef2ff;
+        border: 1px solid #c7d2fe;
         margin-bottom: 24px;
     }
-    .hero h1 { margin: 0; font-size: 2rem; color: #f9fafb; }
-    .hero p { margin: 6px 0 0 0; color: #9ca3af; }
+    .hero h1 { margin: 0; font-size: 2rem; color: #1e293b; }
+    .hero p { margin: 6px 0 0 0; color: #475569; }
     .price-card {
-        background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+        background-color: #ecfdf5;
+        border: 1px solid #10b981;
         border-radius: 18px;
         padding: 36px;
         text-align: center;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.35);
     }
-    .price-card .label { color: #d1fae5; font-size: 0.95rem; letter-spacing: 0.05em; text-transform: uppercase; }
-    .price-card .amount { color: #ffffff; font-size: 3rem; font-weight: 700; margin-top: 6px; }
-    .price-card .note { color: #a7f3d0; font-size: 0.85rem; margin-top: 10px; }
+    .price-card .label { color: #047857; font-size: 0.95rem; letter-spacing: 0.05em; text-transform: uppercase; }
+    .price-card .amount { color: #065f46; font-size: 3rem; font-weight: 700; margin-top: 6px; }
+    .price-card .note { color: #047857; font-size: 0.85rem; margin-top: 10px; }
     .placeholder-card {
-        border: 1px dashed #374151;
+        border: 1px dashed #cbd5e1;
         border-radius: 18px;
         padding: 48px;
         text-align: center;
-        color: #6b7280;
-    }
-    div[data-testid="stMetric"] {
-        background-color: #161a23;
-        border: 1px solid #262b36;
-        border-radius: 12px;
-        padding: 14px;
+        color: #64748b;
+        background-color: #f8fafc;
     }
     </style>
 """, unsafe_allow_html=True)
