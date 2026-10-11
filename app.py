@@ -2,86 +2,169 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-st.set_page_config(page_title="Car Price Predictor", page_icon="🚗", layout="centered")
-# ---- Simple styling ----
+
+st.set_page_config(
+    page_title="Car Price Predictor",
+    page_icon="🚗",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+# ---------------- Styling ----------------
 st.markdown("""
     <style>
-    .main { background-color: #f9fafb; }
-    .price-box {
-        background-color: #ecfdf5;
-        border: 1px solid #10b981;
-        border-radius: 12px;
-        padding: 20px;
-        text-align: center;
-        margin-top: 10px;
+    .stApp { background-color: #0e1117; color: #e6e6e6; }
+    section[data-testid="stSidebar"] {
+        background-color: #161a23;
+        border-right: 1px solid #262b36;
     }
-    .price-box h2 { color: #065f46; margin: 0; }
+    .hero {
+        padding: 28px 32px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+        border: 1px solid #2d3748;
+        margin-bottom: 24px;
+    }
+    .hero h1 { margin: 0; font-size: 2rem; color: #f9fafb; }
+    .hero p { margin: 6px 0 0 0; color: #9ca3af; }
+    .price-card {
+        background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+        border-radius: 18px;
+        padding: 36px;
+        text-align: center;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    }
+    .price-card .label { color: #d1fae5; font-size: 0.95rem; letter-spacing: 0.05em; text-transform: uppercase; }
+    .price-card .amount { color: #ffffff; font-size: 3rem; font-weight: 700; margin-top: 6px; }
+    .price-card .note { color: #a7f3d0; font-size: 0.85rem; margin-top: 10px; }
+    .placeholder-card {
+        border: 1px dashed #374151;
+        border-radius: 18px;
+        padding: 48px;
+        text-align: center;
+        color: #6b7280;
+    }
+    div[data-testid="stMetric"] {
+        background-color: #161a23;
+        border: 1px solid #262b36;
+        border-radius: 12px;
+        padding: 14px;
+    }
     </style>
 """, unsafe_allow_html=True)
+
 @st.cache_resource
 def load_artifacts():
     model = joblib.load("model.pkl")
     metadata = joblib.load("metadata.pkl")
     return model, metadata
-model, metadata = load_artifacts()    
+
+model, metadata = load_artifacts()
+
 LOG_TARGET = True
-# Approximate INR -> NGN conversion. Update this periodically — exchange rates move.
-INR_TO_NGN = 19.0  # change to today's actual rate before you commit
-st.title("🚗 Car Price Predictor")
-st.caption(f"Model: {metadata.get('model_name', 'Regression model')}")
-st.write("Enter the car details below to estimate its selling price.")
-with st.expander("ℹ️ About the currency shown"):
-    st.write(
-        "This model was trained on Indian (CarDekho) listings, so predictions are "
-        "naturally in Indian Rupees. The Naira figure below is an approximate "
-        "conversion for convenience, not a price calibrated to the Nigerian market — "
-        "treat it as a rough reference, not a quote."
-    )
-col1, col2 = st.columns(2)
-with col1:
+INR_TO_NGN = 19.0  # update to today's rate periodically
+
+# ---------------- Hero header ----------------
+st.markdown(f"""
+    <div class="hero">
+        <h1>🚗 Car Price Predictor</h1>
+        <p>Model: {metadata.get('model_name', 'Regression model')} · Trained on CarDekho (India) listings</p>
+    </div>
+""", unsafe_allow_html=True)
+
+# ---------------- Sidebar: all inputs ----------------
+with st.sidebar:
+    st.header("Car Details")
+
     brand = st.selectbox("Brand", metadata["brands"])
     year = st.number_input("Year of manufacture", min_value=1990, max_value=2026, value=2018)
     km_driven = st.number_input("Kilometres driven", min_value=0, max_value=500000, value=40000, step=1000)
+
+    st.divider()
+
     fuel = st.selectbox("Fuel type", metadata["fuel_options"])
-    seller_type = st.selectbox("Seller type", metadata["seller_type_options"])
-with col2:
     transmission = st.selectbox("Transmission", metadata["transmission_options"])
+    seller_type = st.selectbox("Seller type", metadata["seller_type_options"])
     owner = st.selectbox("Ownership", metadata["owner_options"])
+
+    st.divider()
+
     mileage = st.number_input("Mileage (km/ltr/kg)", min_value=0.0, max_value=42.0, value=18.0, step=0.1)
     engine = st.number_input("Engine (CC)", min_value=600, max_value=3600, value=1200, step=50)
     max_power = st.number_input("Max power (bhp)", min_value=0.0, max_value=400.0, value=80.0, step=1.0)
-seats = st.slider("Seats", min_value=2, max_value=10, value=5)
-currency = st.radio("Show price in:", ["₹ Indian Rupees (model's native output)", "₦ Naira (approx. converted)"], horizontal=True)
-if st.button("Predict Price", type="primary"):
-    car_age = 2026 - year
-    input_df = pd.DataFrame([{
-        "km_driven": km_driven,
-        "mileage(km/ltr/kg)": mileage,
-        "engine": engine,
-        "max_power": max_power,
-        "seats": seats,
-        "car_age": car_age,
-        "fuel": fuel,
-        "seller_type": seller_type,
-        "transmission": transmission,
-        "owner": owner,
-        "brand": brand,
-    }])
-    raw_pred = model.predict(input_df)[0]
-    pred_inr = np.expm1(raw_pred) if LOG_TARGET else raw_pred
-    if currency.startswith("₦"):
-        pred_display = pred_inr * INR_TO_NGN
-        symbol = "₦"
-    else:
-        pred_display = pred_inr
-        symbol = "₹"
-    st.markdown(f"""
-        <div class="price-box">
-            <p style="margin:0; color:#047857;">Estimated Price</p>
-            <h2>{symbol}{pred_display:,.0f}</h2>
-        </div>
-    """, unsafe_allow_html=True)
-    st.caption(
-        "This is an estimate from a model trained on CarDekho (India) listings. "
-        "Actual resale value depends on condition, location, and market demand."
+    seats = st.slider("Seats", min_value=2, max_value=10, value=5)
+
+    st.divider()
+
+    currency = st.radio(
+        "Show price in",
+        ["\u20b9 INR (native)", "\u20a6 NGN (approx.)"],
     )
+
+    predict_clicked = st.button("Predict Price", type="primary", use_container_width=True)
+
+    with st.expander("ℹ️ About the currency"):
+        st.caption(
+            "Trained on Indian listings, so predictions are naturally in Rupees. "
+            "The Naira figure is an approximate conversion for convenience only, "
+            "not a price calibrated to the Nigerian market."
+        )
+
+# ---------------- Main area: result ----------------
+left, right = st.columns([3, 2])
+
+with left:
+    if predict_clicked:
+        car_age = 2026 - year
+        input_df = pd.DataFrame([{
+            "km_driven": km_driven,
+            "mileage(km/ltr/kg)": mileage,
+            "engine": engine,
+            "max_power": max_power,
+            "seats": seats,
+            "car_age": car_age,
+            "fuel": fuel,
+            "seller_type": seller_type,
+            "transmission": transmission,
+            "owner": owner,
+            "brand": brand,
+        }])
+
+        raw_pred = model.predict(input_df)[0]
+        pred_inr = np.expm1(raw_pred) if LOG_TARGET else raw_pred
+
+        if currency.startswith("\u20a6"):
+            pred_display = pred_inr * INR_TO_NGN
+            symbol = "\u20a6"
+        else:
+            pred_display = pred_inr
+            symbol = "\u20b9"
+
+        st.markdown(f"""
+            <div class="price-card">
+                <div class="label">Estimated Selling Price</div>
+                <div class="amount">{symbol}{pred_display:,.0f}</div>
+                <div class="note">{brand} · {year} · {transmission}</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        st.caption(
+            "This is an estimate from a model trained on CarDekho (India) listings. "
+            "Actual resale value depends on condition, location, and market demand."
+        )
+    else:
+        st.markdown("""
+            <div class="placeholder-card">
+                Fill in the car details in the sidebar, then click<br><b>Predict Price</b> to see the estimate here.
+            </div>
+        """, unsafe_allow_html=True)
+
+with right:
+    st.subheader("Quick summary")
+    c1, c2 = st.columns(2)
+    c1.metric("Brand", brand)
+    c2.metric("Year", year)
+    c1.metric("Km driven", f"{km_driven:,}")
+    c2.metric("Fuel", fuel)
+    c1.metric("Transmission", transmission)
+    c2.metric("Owner", owner)
